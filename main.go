@@ -159,6 +159,21 @@ func (e *Exporter) scrape(ch chan<- prometheus.Metric) {
 		log.Errorln("Error scraping for sessions:", err)
 		e.scrapeErrors.WithLabelValues("sessions").Inc()
 	}
+	
+	if err = ScrapeFRA(db, ch); err != nil {
+		log.Errorln("Error scraping for fra:", err)
+		e.scrapeErrors.WithLabelValues("fra").Inc()
+	}	
+	
+	if err = ScrapeRMAN(db, ch); err != nil {
+		log.Errorln("Error scraping for rman:", err)
+		e.scrapeErrors.WithLabelValues("rman").Inc()
+	}
+	
+	if err = ScrapeUsers(db, ch); err != nil {
+		log.Errorln("Error scraping for users:", err)
+		e.scrapeErrors.WithLabelValues("users").Inc()
+	}
 
 }
 
@@ -392,6 +407,123 @@ WHERE
 		ch <- prometheus.MustNewConstMetric(tablespaceBytesDesc, prometheus.GaugeValue, float64(bytes), tablespace_name, contents)
 		ch <- prometheus.MustNewConstMetric(tablespaceMaxBytesDesc, prometheus.GaugeValue, float64(max_bytes), tablespace_name, contents)
 		ch <- prometheus.MustNewConstMetric(tablespaceFreeBytesDesc, prometheus.GaugeValue, float64(bytes_free), tablespace_name, contents)
+	}
+	return nil
+}
+
+func ScrapeFRA(db *sql.DB, ch chan<- prometheus.Metric) error {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+
+	rows, err = db.Query("select trunc(sum(PERCENT_SPACE_USED)) as value from v$flash_recovery_area_usage")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			value float64
+		)
+		if err := rows.Scan(&value); err != nil {
+			return err
+		}
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(prometheus.BuildFQName(namespace, "fra","used"),
+				"FRA disponible", []string{}, nil),
+				prometheus.GaugeValue,
+				value,
+		)
+	}
+	return nil
+}
+
+func ScrapeRMAN(db *sql.DB, ch chan<- prometheus.Metric) error {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	// Retrieve status and type for all sessions.
+	rows, err = db.Query("SELECT row_level, operation AS bkp_operation, status AS bkp_status, object_type, TO_CHAR(start_time,'YYYY-MM-DD_HH24:MI:SS') AS bkp_start_time, TO_CHAR(end_time,'YYYY-MM-DD_HH24:MI:SS') as bkp_end_time, TO_CHAR(start_time,'DD') as bkp_start_nbday FROM V$RMAN_STATUS WHERE START_TIME > SYSDATE -1 AND operation = 'BACKUP'")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			Value float64
+			row_level float64
+			bkp_operation string
+			bkp_status string
+			object_type string
+			bkp_start_time string
+			bkp_end_time string
+			bkp_start_nbday string
+		)
+		if err := rows.Scan(&row_level, &bkp_operation, &bkp_status, &object_type, &bkp_start_time, &bkp_end_time, &bkp_start_nbday); err != nil {
+			return err
+		}
+
+		if bkp_status == "COMPLETED" {
+			Value = 2
+		} else
+		if bkp_status == "RUNNING" {
+			Value = 1
+		} else {
+		Value = 0
+		}
+
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(prometheus.BuildFQName(namespace, "rman", "backup"),
+			"Backup RMAN", []string{"operation", "status", "type", "start_time", "end_time", "start_nbday"}, nil),
+			prometheus.GaugeValue,
+			Value,
+			bkp_operation,
+			bkp_status,
+			object_type,
+			bkp_start_time,
+			bkp_end_time,
+			bkp_start_nbday,
+		)
+	}
+	return nil
+}
+
+func ScrapeUsers(db *sql.DB, ch chan<- prometheus.Metric) error {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	// Retrieve status and type for all sessions.
+	rows, err = db.Query("SELECT TRUNC(expiry_date) - TRUNC(sysdate) as expiration, username, REPLACE(account_status, ' ', '') FROM dba_users")
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			expiration float64
+			username string
+			account_status string
+		)
+		if err := rows.Scan(&expiration, &username, &account_status); err != nil {
+			return err
+		}
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(prometheus.BuildFQName(namespace, "users", "expiration"),
+				"Utilisateurs", []string{"username", "status"}, nil),
+			prometheus.CounterValue,
+			expiration,
+			username,
+			account_status,
+		)
 	}
 	return nil
 }
