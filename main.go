@@ -265,7 +265,7 @@ func ScrapeActivity(db *sql.DB, ch chan<- prometheus.Metric) error {
 	return nil
 }
 
-// ScrapeBaseStatus collects session metrics from the v$session view.
+// ScrapeBaseStatus collects session metrics from the v$instance view.
 func ScrapeBaseStatus(db *sql.DB, ch chan<- prometheus.Metric) error {
 	var (
 		rows *sql.Rows
