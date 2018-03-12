@@ -31,7 +31,8 @@ The following metrics are exposed currently.
 - oracledb_wait_time_user_io
 - oracledb_tablespace_free
 - oracledb_fra_used
-
+- oracledb_status_{oracle_instance}
+- oracledb_users_expiration
 # Installation
 
 ## Docker
