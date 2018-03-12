@@ -11,14 +11,13 @@ The following metrics are exposed currently.
 - oracledb_exporter_last_scrape_duration_seconds
 - oracledb_exporter_last_scrape_error
 - oracledb_exporter_scrapes_total
+
 - oracledb_up
 - oracledb_activity_execute_count
 - oracledb_activity_parse_count_total
 - oracledb_activity_user_commits
 - oracledb_activity_user_rollbacks
 - oracledb_sessions_activity
-- oracledb_sessions_active (deprecated. Use ``sum(oracledb_sessions_activity{status='ACTIVE'})`` instead.)
-- oracledb_sessions_inactive (deprecated. Use ``sum(oracledb_sessions_activity{status='INACTIVE'})`` instead.)
 - oracledb_wait_time_application
 - oracledb_wait_time_commit
 - oracledb_wait_time_concurrency
@@ -28,9 +27,7 @@ The following metrics are exposed currently.
 - oracledb_wait_time_scheduler
 - oracledb_wait_time_system_io
 - oracledb_wait_time_user_io
-- oracledb_tablespace_bytes
-- oracledb_tablespace_max_bytes
-- oracledb_tablespace_bytes_free
+- oracledb_tablespace_free
 
 # Installation
 
