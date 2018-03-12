@@ -150,7 +150,7 @@ func (e *Exporter) scrape(ch chan<- prometheus.Metric) {
 		e.scrapeErrors.WithLabelValues("activity").Inc()
 	}
 
-	if err = ScrapeBaseStatus(db, ch); err != nil {
+	if err = ScrapeInstanceStatus(db, ch); err != nil {
 		log.Errorln("Error scraping for status:", err)
 		e.scrapeErrors.WithLabelValues("status").Inc()
 	}
@@ -265,8 +265,8 @@ func ScrapeActivity(db *sql.DB, ch chan<- prometheus.Metric) error {
 	return nil
 }
 
-// ScrapeBaseStatus collects session metrics from the v$instance view.
-func ScrapeBaseStatus(db *sql.DB, ch chan<- prometheus.Metric) error {
+// ScrapeInstanceStatus collects session metrics from the v$instance view.
+func ScrapeInstanceStatus(db *sql.DB, ch chan<- prometheus.Metric) error {
 	var (
 		rows *sql.Rows
 		err  error
@@ -341,7 +341,7 @@ func ScrapeUsers(db *sql.DB, ch chan<- prometheus.Metric) error {
 		rows *sql.Rows
 		err  error
 	)
-	// Retrieve status and type for all sessions.
+	// Retrieve status and expiry date for all accounts.
 	rows, err = db.Query("SELECT TRUNC(expiry_date) - TRUNC(sysdate) as expiration, username, REPLACE(account_status, ' ', '') FROM dba_users")
 	if err != nil {
 		return err
