@@ -8,10 +8,12 @@ A [Prometheus](https://prometheus.io/) exporter for Oracle modeled after the MyS
 
 The following metrics are exposed currently.
 
+-- Stats about metrics and errors
 - oracledb_exporter_last_scrape_duration_seconds
 - oracledb_exporter_last_scrape_error
 - oracledb_exporter_scrapes_total
 
+-- Metrics for Oracle Monitoring
 - oracledb_up
 - oracledb_activity_execute_count
 - oracledb_activity_parse_count_total
@@ -72,4 +74,4 @@ Usage of oracledb_exporter:
 
 # Integration with Grafana
 
-An example Grafana dashboard is available [here](https://grafana.com/dashboards/3333).
+An example Grafana dashboard is available [here](https://imgur.com/x3gwBWS).
